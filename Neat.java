@@ -28,14 +28,13 @@ class Node {
     }
 }
 
+
 class Creature {
     ArrayList<Node> nodes = new ArrayList<Node>();
     ArrayList<Connection> connections = new ArrayList<Connection>();
     Random rand = new Random();
-    int currentId = 0;
-    int inputNum;
-    int outputNum;
-    int creatureId;
+    int currentId = 0, inputNum, outputNum, creatureId, improve = 0;
+    float scoresPrev = 0, scoresCur = 0;
     
     // constructor for base minimal creature
     public Creature(int inputs, int outputs) {
@@ -66,56 +65,52 @@ class Creature {
     ArrayList<Float> totLayers = new ArrayList<Float>();
     Creature Mutate() {
         // have a chance of adding a node or connection
-        // 0 = new node
-        // 1 = new connection
-        // 2 = remove a connection
-        // 3 = adjust 1 connection value
-        int generate = rand.nextInt(0,4);
-        
+        // 0 = new node                     2%
+        // 1 = new connection               10%
+        // 2 = remove a connection          3%
+        // 3 = adjust 1 connection value    85%
+        int generate = rand.nextInt(0,100);
         
         // choose  a random connection to add a node between
         // create a new connection from new node to end of old connection
         // move the end of old connection to new node
-        if (generate == 0){
-            if (rand.nextInt(0, 80) == 0) { // 1 in 50 chance of new node muation
-                System.out.println("Node added: " + currentId);
-                
-                // choose a random connection and add a node
-                int create = this.rand.nextInt(0, (connections.size())); 
-                nodes.add(new Node(0, currentId, 2));
-                
-                // set its layer to the average of its start and end connection layers
-                float s = nodes.get(connections.get(create).start).layer;
-                float x = nodes.get(connections.get(create).end).layer;
-                nodes.get(currentId).layer = (s+x)/2;
-                
-                // create a new connection from the new node to previous end node and set its inno id
-                connections.add(new Connection(1, currentId, connections.get(create).end)); 
-                connections.get(connections.size()-1).inoId = Integer.parseInt(currentId + "" + connections.get(create).end);
-                
-                // move the connection from old end node to the new node and set its inno id
-                connections.get(create).end = currentId; 
-                connections.get(create).inoId = Integer.parseInt(connections.get(create).start + "" + connections.get(create).end);
-                currentId++;
-                
-                
-                // add every unqie layer number to a list
-                for(int i = 0; i < nodes.size(); i++){
-                    if (!(totLayers.contains(nodes.get(i).layer))){
-                        totLayers.add(nodes.get(i).layer);
-                    } 
+        if (generate == 0 || generate == 1){
+            
+            // choose a random connection and add a node
+            int create = this.rand.nextInt(0, (connections.size())); 
+            nodes.add(new Node(0, currentId, 2));
+            
+            // set its layer to the average of its start and end connection layers
+            float s = nodes.get(connections.get(create).start).layer;
+            float x = nodes.get(connections.get(create).end).layer;
+            nodes.get(currentId).layer = (s+x)/2;
+            
+            // create a new connection from the new node to previous end node and set its inno id
+            connections.add(new Connection(1, currentId, connections.get(create).end)); 
+            connections.get(connections.size()-1).inoId = Integer.parseInt(currentId + "" + connections.get(create).end);
+            
+            // move the connection from old end node to the new node and set its inno id
+            connections.get(create).end = currentId; 
+            connections.get(create).inoId = Integer.parseInt(connections.get(create).start + "" + connections.get(create).end);
+            currentId++;
+            
+            
+            // add every unqie layer number to a list
+            for(int i = 0; i < nodes.size(); i++){
+                if (!(totLayers.contains(nodes.get(i).layer))){
+                    totLayers.add(nodes.get(i).layer);
                 } 
-                
-                totLayers.sort(null);
-            }  
+            } 
+            
+            totLayers.sort(null);
         }
         
-        else if (generate == 1){
+        else if (generate >= 2 && generate <= 11){
             
             // for every node check which node is in the layer ahead to create a new connection
             ArrayList<Integer> start = new ArrayList<Integer>();
             ArrayList<Integer> end = new ArrayList<Integer>();
-
+            
             // for every node check all possible other nodes
             for (int i  = 0; i < nodes.size(); i++){
                 for (int s = 0; s < nodes.size(); s++){
@@ -139,23 +134,20 @@ class Creature {
             
             //If possible connections can be added then add
             if (start.size() != 0){
-                System.out.println("new node: "+nodes.size());
                 int choice = rand.nextInt(0, start.size());
                 connections.add(new Connection(rand.nextFloat() * 2.0f - 1.0f , start.get(choice), end.get(choice)));
             }
         }
         
         //If a there is a connection that can be removed
-        else if (generate == 2 &&  connections.size() > 1) {
+        else if (generate >= 12 && generate <= 14 &&  connections.size() > 1) {
             int change = rand.nextInt(0, connections.size());
-            System.out.println("Connection removed: "+connections.get(change).inoId);
             connections.remove(change);
         }
         
         //Adjust a random connections weight to a random number
-        else if (generate == 3) {
+        else if (generate >= 15 && generate <= 99) {
             int change = rand.nextInt(0, connections.size());
-            System.out.println("Connection changed: "+connections.get(change).inoId);
             connections.get(change).weight = rand.nextFloat() * 2.0f - 1.0f;
         }
         
@@ -206,8 +198,8 @@ class Creature {
 public class Neat {
     static final int NUM_INPUTS = 2;
     static final int NUM_OUTPUTS = 1;
-    static final int NUM_AGENTS = 50;
-    static final int NUM_GENERATIONS = 1000;
+    static final int NUM_AGENTS = 10;
+    static final int NUM_GENERATIONS = 500;
     
     //  sorts the scores and the creatures in parallel
     static private void sort(ArrayList<Creature> currentGeneration, ArrayList<Float> scores){
@@ -249,36 +241,25 @@ public class Neat {
         excess = Math.abs(c1.connections.size()-c2.connections.size());
         
         // gets all the non-similar connections and  average weight
-        if (c1.connections.size() > c2.connections.size()){
-            for (int i = 0; i < c1.connections.size(); i++){
-                for (int s = 0; s < c2.connections.size(); s++){
-                    if (c1.connections.get(i).inoId == c2.connections.get(s).inoId){
-                        average += Math.abs(c1.connections.get(i).weight) + Math.abs(c2.connections.get(s).weight);
-                        count++;
-                        break;
-                    }
+        for (int i = 0; i < c1.connections.size(); i++){
+            for (int s = 0; s < c2.connections.size(); s++){
+                if (c1.connections.get(i).inoId == c2.connections.get(s).inoId){
+                    average += Math.abs(c1.connections.get(i).weight) + Math.abs(c2.connections.get(s).weight);
+                    count++;
+                    break;
                 }
             }
         }
-        else{
-            for (int i = 0; i < c2.connections.size(); i++){
-                for (int s = 0; s < c1.connections.size(); s++){
-                    if (c2.connections.get(i).inoId == c1.connections.get(s).inoId){
-                        average += Math.abs(c1.connections.get(i).weight) + Math.abs(c2.connections.get(s).weight);
-                        count++;
-                        break;
-                    }
-                }
-            }
-        }
-
+        if (count==0) count = 1;
+        
         average = average / count;
         disjoint = c1.connections.size()-count;
         disjoint += c2.connections.size()-count;
         
+        
         diff = excess + disjoint + average;
-        System.out.println(diff+" "+excess+" "+disjoint+" "+average);
-
+        // System.out.println("diff: " +diff+" "+excess+" "+disjoint+" "+average + "\n");
+        
     }
     
     // specifically designed for XOR
@@ -302,15 +283,6 @@ public class Neat {
             double val =  Math.round(1/(1+Math.exp(specimen.Calculate(input).get(0)*-1)));//sigmoid function
             if (val == xor(input.get(0), input.get(1))) {
                 score++;
-                // System.out.println("Test was: " + input.get(0)+" "+input.get(1));
-                //   System.out.println("reply: "+ val);
-                
-                
-            }
-            else{
-                //  System.out.println("wrong Test was: " +input.get(0)+" "+input.get(1));
-                //  System.out.println("wrong reply: "+val);
-                
             }
         }
         if (score == 4){
@@ -323,34 +295,59 @@ public class Neat {
     public static void main(String[] args) throws IOException {
         ArrayList<Float> scores = new ArrayList<Float>();
         int name = 0;
-
+        
         // generate initial population
         ArrayList<Creature> currentGeneration = new ArrayList<Creature>();
         for (int i = 0; i < NUM_AGENTS; i++){
             // each creature has random connection weights, with minimal nodes
             currentGeneration.add(new Creature(NUM_INPUTS, NUM_OUTPUTS));
-            scores.add(getFitness(currentGeneration.get(i)));
             currentGeneration.get(i).creatureId = name;
             name++;
+            scores.add(getFitness(currentGeneration.get(i)));
+            currentGeneration.get(i).scoresCur = scores.get(i);
         }
-       
         
         sort(currentGeneration, scores);
         
-        System.out.println(scores);
-         for (int i = 0; i < currentGeneration.size(); i++){
-                System.out.print(currentGeneration.get(i).creatureId + " ");
-            }
-
+        System.out.println("START" + scores);
+        for (int i = 0; i < currentGeneration.size(); i++){
+            System.out.print("s:"+scores.get(i) +" ID:"+ currentGeneration.get(i).creatureId + "   ");
+        }
+        System.out.println("");
+        
         // for every generation 
         for (int s = 0; s < NUM_GENERATIONS-1; s++){
-             speciate(currentGeneration.get(0), currentGeneration.get(1));
-            //System.out.println("NEW GENERATION: " + s);
+            speciate(currentGeneration.get(0), currentGeneration.get(9));
             sort(currentGeneration, scores);
+            
+            for (int i = 0; i < currentGeneration.size(); i++){
+                System.out.print("s:"+scores.get(i) +" ID:"+ currentGeneration.get(i).creatureId + "  ");
+            }
+            System.out.println(s);
+            
             // keep the top 20%
             for (int w = 0; w < Math.round(NUM_AGENTS*0.8); w++){
                 scores.remove(0);
                 currentGeneration.remove(0);
+            }
+            
+            // remove the agent if it hasnt improved over 15 generations
+            for (int w = 0; w < currentGeneration.size(); w++){ 
+                if (currentGeneration.get(w).scoresCur == currentGeneration.get(w).scoresPrev){
+                    currentGeneration.get(w).improve++;
+                }
+                else{
+                    currentGeneration.get(w).scoresPrev = currentGeneration.get(w).scoresCur;
+                    currentGeneration.get(w).improve = 0;
+                }
+                
+                if (currentGeneration.get(w).improve >= 50 && scores.get(w) != 4){
+                    System.out.println("reset nodes: " + currentGeneration.get(w).nodes.size() + " from agent " + currentGeneration.get(w).creatureId);
+                    currentGeneration.set(w, new Creature(NUM_INPUTS, NUM_OUTPUTS));
+                    scores.set(w, getFitness(currentGeneration.get(w)));
+                    currentGeneration.get(w).improve = 0;
+                    currentGeneration.get(w).creatureId = name;
+                }
             }
             
             // duplicate the top 20% 4 times and mutate them and test them to fill the 80%
@@ -361,18 +358,18 @@ public class Neat {
                     scores.add(getFitness(currentGeneration.get(currentGeneration.size()-1)));   
                 }
             }
-            
             sort(currentGeneration, scores);
-            System.out.println(scores);
-            for (int i = 0; i < currentGeneration.size(); i++){
-                System.out.print(currentGeneration.get(i).creatureId + " ");
-            }
         }
-        //   System.out.println("END SCORE " + scores);
+        
+        for (int i =0; i < currentGeneration.size(); i++){
+            System.out.println(currentGeneration.get(i).nodes.size());
+        }
+        System.out.println("END SCORE " + scores);
         // 1. conduct tests
         // 2. take 20 highest scorers
         // 3. for each mutuate 4 times and add to new population
         // 4. repeat steps 1-4 for num of generations
     }
 }
+
 
