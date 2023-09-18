@@ -1,6 +1,13 @@
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.JButton;
+import javax.swing.JPanel;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JTextField;
 
 class Connection {
     int start, end, inoId;
@@ -195,11 +202,13 @@ class Creature {
     }
 }
 
-public class Neat {
+
+class run{
     static final int NUM_INPUTS = 2;
     static final int NUM_OUTPUTS = 1;
-    static final int NUM_AGENTS = 10;
-    static final int NUM_GENERATIONS = 500;
+    static int NUM_AGENTS = 10;
+    static int NUM_GENERATIONS = 500;
+    static int get = 1;
     
     //  sorts the scores and the creatures in parallel
     static private void sort(ArrayList<Creature> currentGeneration, ArrayList<Float> scores){
@@ -233,7 +242,7 @@ public class Neat {
     }
     
     // compares two species and  see how different they are
-    static void speciate(Creature c1, Creature c2){
+    private static void speciate(Creature c1, Creature c2){
         int excess = 0, count = 0, disjoint = 0;
         float diff = 0, average = 0;
         
@@ -291,9 +300,9 @@ public class Neat {
         return (float) score;
     }
     
-    
-    public static void main(String[] args) throws IOException {
+    static void ai() throws IOException {
         ArrayList<Float> scores = new ArrayList<Float>();
+        ArrayList<Creature> best = new ArrayList<Creature>();
         int name = 0;
         
         // generate initial population
@@ -308,6 +317,7 @@ public class Neat {
         }
         
         sort(currentGeneration, scores);
+        best.add(currentGeneration.get(currentGeneration.size()-1));
         
         System.out.println("START" + scores);
         for (int i = 0; i < currentGeneration.size(); i++){
@@ -359,11 +369,16 @@ public class Neat {
                 }
             }
             sort(currentGeneration, scores);
+            best.add(currentGeneration.get(currentGeneration.size()-1));
         }
         
+         sort(currentGeneration, scores);
         for (int i =0; i < currentGeneration.size(); i++){
-            System.out.println(currentGeneration.get(i).nodes.size());
+            if (scores.get(i) == 4){
+            System.out.print(currentGeneration.get(i).nodes.size() + " ");
         }
+        }
+                System.out.println();
         System.out.println("END SCORE " + scores);
         // 1. conduct tests
         // 2. take 20 highest scorers
@@ -372,4 +387,120 @@ public class Neat {
     }
 }
 
+
+class draw extends JFrame implements ActionListener {
+    
+    JFrame frame = new JFrame();
+    
+    JTextField track = new JTextField(run.get);
+    JTextField agents = new JTextField(run.NUM_AGENTS);
+    JTextField gens = new JTextField(run.NUM_GENERATIONS);
+    
+    JLabel trackLabel = new JLabel("Top agents shown:");
+    JLabel agentsLabel = new JLabel("Agent Count:");
+    JLabel genLabel = new JLabel("Generation Count:");
+    
+    
+    JButton trackBut = new JButton("Set");
+    JButton agentBut = new JButton("Set");
+    JButton genBut = new JButton("Set");
+    JButton runBut = new JButton("Run");
+    
+    
+    draw(){
+        // set the details
+        frame.add(new DrawPane());
+        frame.setTitle("NEAT");
+        frame.setLayout(null);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(1000, 1000);
+        frame.setVisible(true);
+        
+        
+        // set the dimensions
+        trackLabel.setBounds(0, 0, 250, 20);
+        track.setBounds(0, 20, 100, 20);
+        trackBut.setBounds(102, 20, 60, 20);
+        
+        agentsLabel.setBounds(0, 40, 250, 20);
+        agents.setBounds(0, 60, 100, 20);
+        agentBut.setBounds(102, 60, 60, 20);
+        
+        
+        genLabel.setBounds(0, 80, 250, 20);
+        gens.setBounds(0, 100, 100, 20);
+        genBut.setBounds(102, 100, 60, 20);
+        
+        runBut.setBounds(0, 130, 162, 70);
+        
+        // make it so you can see when it was pressed
+        trackBut.addActionListener(this);
+        agentBut.addActionListener(this);
+        genBut.addActionListener(this);
+        runBut.addActionListener(this);
+        
+        // add to the pannel
+        frame.add(track);
+        frame.add(trackLabel);
+        frame.add(trackBut);
+        frame.add(agentsLabel);
+        frame.add(agents);
+        frame.add(agentBut);
+        frame.add(genLabel);
+        frame.add(gens);
+        frame.add(genBut);
+        frame.add(runBut);
+    }
+    
+    // tests if a valid number was entered
+    public int test(String text){
+        int num;
+        try{
+            num = Integer.parseInt(text);
+        }
+        catch(Exception w){
+            num = -1;
+        }
+        return num;
+    }
+    
+    // read key presses
+    public void actionPerformed(ActionEvent e) {
+        
+        // if button was ressed
+        if (e.getSource() == trackBut) {
+            if (test(track.getText()) != -1) run.get = Integer.parseInt(track.getText());
+            else track.setText("Whole # Only");
+        }
+        if (e.getSource() == agentBut) {
+            if (test(agents.getText()) != -1) run.NUM_AGENTS = Integer.parseInt(agents.getText());
+            else agents.setText("Whole # Only");
+        }
+        if (e.getSource() == genBut) {
+            if (test(gens.getText()) != -1) run.NUM_GENERATIONS = Integer.parseInt(gens.getText());
+            else gens.setText("Whole # Only");
+        }
+        if (e.getSource() == runBut){
+            try {
+                run.ai();
+            }
+            catch(Exception w){
+            }
+        }
+    }
+    
+    // draws everything
+    class DrawPane extends JPanel {
+        public void paint(Graphics g) {
+            g.fillOval(50, 50, 100, 100);  
+        }
+    }
+}
+
+
+public class Neat {
+    public static void main(String[] args) throws IOException {
+        draw d = new draw();
+    }
+}
 
