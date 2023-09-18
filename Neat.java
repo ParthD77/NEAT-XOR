@@ -170,14 +170,6 @@ class Creature {
             
         }
         
-        // for every node, find which connections start at it and multiply the value with the weight and then set that to the value of the ending node
-        for (int i = 0; i < nodes.size(); i++){
-            for (int s = 0; s < connections.size(); s++){
-                if (connections.get(s).start==i){
-                    nodes.get(connections.get(s).end).value +=  nodes.get(i).value*connections.get(s).weight;
-                }
-            }
-        }
         
         // for every layer get all nodes in it, for every node multiply value by its connection weight and send to ending node
         for (int i = 0; i < totLayers.size(); i++){
@@ -192,7 +184,7 @@ class Creature {
             }
         }
         
-        //set the outputs
+        // set the outputs
         ArrayList<Float> outputs = new ArrayList<Float>();
         for (int i = 0; i < outputNum; i++) { 
             outputs.add(nodes.get(inputNum+i).value);
@@ -289,7 +281,7 @@ class run{
             ArrayList<Float> input = new ArrayList<Float>();
             input.add(0, (float) Math.round(i/4.0f));
             input.add(1, (float) i % 2);
-            double val =  Math.round(1/(1+Math.exp(specimen.Calculate(input).get(0)*-1)));//sigmoid function
+            double val =  Math.round(1/(1+Math.exp(specimen.Calculate(input).get(0)*-1)));  //sigmoid function
             if (val == xor(input.get(0), input.get(1))) {
                 score++;
             }
