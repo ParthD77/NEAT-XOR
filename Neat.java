@@ -3,6 +3,8 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.awt.*;
 import java.awt.event.*;
+
+import javax.swing.GroupLayout;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JFrame;
@@ -361,16 +363,18 @@ class run{
                 }
             }
             sort(currentGeneration, scores);
-            best.add(currentGeneration.get(currentGeneration.size()-1));
+            for (int i = 0; i < get; i++){
+                best.add(currentGeneration.get(currentGeneration.size()-1+i));
+            }
         }
         
-         sort(currentGeneration, scores);
+        sort(currentGeneration, scores);
         for (int i =0; i < currentGeneration.size(); i++){
             if (scores.get(i) == 4){
-            System.out.print(currentGeneration.get(i).nodes.size() + " ");
+                System.out.print(currentGeneration.get(i).nodes.size() + " ");
+            }
         }
-        }
-                System.out.println();
+        System.out.println();
         System.out.println("END SCORE " + scores);
         // 1. conduct tests
         // 2. take 20 highest scorers
@@ -380,30 +384,35 @@ class run{
 }
 
 
-class draw extends JFrame implements ActionListener {
+class draw implements ActionListener {
+    int disGen = 0;
     
     JFrame frame = new JFrame();
     
     JTextField track = new JTextField(run.get);
     JTextField agents = new JTextField(run.NUM_AGENTS);
     JTextField gens = new JTextField(run.NUM_GENERATIONS);
+    JTextField showGens = new JTextField(0);
+    
     
     JLabel trackLabel = new JLabel("Top agents shown:");
     JLabel agentsLabel = new JLabel("Agent Count:");
     JLabel genLabel = new JLabel("Generation Count:");
+    JLabel showGenLabel = new JLabel("Generation Shown:");
     
     
     JButton trackBut = new JButton("Set");
     JButton agentBut = new JButton("Set");
     JButton genBut = new JButton("Set");
+    JButton showGenBut = new JButton("Show");
     JButton runBut = new JButton("Run");
+    JButton cheatBut  = new JButton("");
     
     
     draw(){
         // set the details
-        frame.add(new DrawPane());
         frame.setTitle("NEAT");
-        frame.setLayout(null);
+        frame.add(new DrawPane());
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(1000, 1000);
         frame.setVisible(true);
@@ -418,18 +427,27 @@ class draw extends JFrame implements ActionListener {
         agents.setBounds(0, 60, 100, 20);
         agentBut.setBounds(102, 60, 60, 20);
         
-        
         genLabel.setBounds(0, 80, 250, 20);
         gens.setBounds(0, 100, 100, 20);
         genBut.setBounds(102, 100, 60, 20);
         
         runBut.setBounds(0, 130, 162, 70);
+
+        showGenLabel.setBounds(0, 210, 250, 20);
+        showGens.setBounds(0, 230, 100, 20);
+        showGenBut.setBounds(102, 230, 70, 20);
+        cheatBut.setBounds(0, 0, 0, 0);
         
         // make it so you can see when it was pressed
         trackBut.addActionListener(this);
         agentBut.addActionListener(this);
         genBut.addActionListener(this);
+        showGenBut.addActionListener(this);
         runBut.addActionListener(this);
+
+        // cheat button added last so no button fills upo the whole screen due to no layout manager
+        cheatBut.setEnabled(false);
+        cheatBut.setVisible(false);
         
         // add to the pannel
         frame.add(track);
@@ -442,6 +460,10 @@ class draw extends JFrame implements ActionListener {
         frame.add(gens);
         frame.add(genBut);
         frame.add(runBut);
+        frame.add(showGenLabel);
+        frame.add(showGens);
+        frame.add(showGenBut);
+        frame.add(cheatBut);
     }
     
     // tests if a valid number was entered
@@ -472,6 +494,20 @@ class draw extends JFrame implements ActionListener {
             if (test(gens.getText()) != -1) run.NUM_GENERATIONS = Integer.parseInt(gens.getText());
             else gens.setText("Whole # Only");
         }
+        if (e.getSource() == showGenBut) {
+            if (test(showGens.getText()) != -1){
+                if (Integer.parseInt(showGens.getText()) <= run.NUM_GENERATIONS){
+                    disGen = Integer.parseInt(showGens.getText()); 
+                }
+                else{
+                    disGen = run.NUM_GENERATIONS;
+                    showGens.setText(run.NUM_GENERATIONS+"");
+                }
+            } 
+            else showGens.setText("Whole # Only");
+            System.out.println(disGen);
+        }
+        
         if (e.getSource() == runBut){
             try {
                 run.ai();
