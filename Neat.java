@@ -1,4 +1,6 @@
 import java.io.IOException;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Random;
 import java.awt.*;
@@ -10,6 +12,8 @@ import javax.swing.JPanel;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
+
+import draw.DrawPane;
 
 class Connection {
     int start, end, inoId;
@@ -24,7 +28,7 @@ class Connection {
 }
 class Node {
     float value, layer;
-    int id, type;
+    int id, type, y;
     
     public Node(float value, int id, int type) {
         //TYPES OF NODES
@@ -53,6 +57,7 @@ class Creature {
         for (int i = 0; i < inputs; i++) { 
             this.nodes.add(new Node(0, currentId, 0));
             this.nodes.get(i).layer = 0;
+            this.nodes.get(i).y = i;
             currentId++;
         }
         
@@ -60,6 +65,7 @@ class Creature {
         for (int i = 0; i < outputs; i++) {
             this.nodes.add(new Node(0, currentId, 1));
             this.nodes.get(i+inputs).layer = 1;
+            this.nodes.get(i).y = i;
             currentId++;
         }
         
@@ -88,6 +94,7 @@ class Creature {
             // choose a random connection and add a node
             int create = this.rand.nextInt(0, (connections.size())); 
             nodes.add(new Node(0, currentId, 2));
+            nodes.get(nodes.size()-1).y = nodes.get(connections.get(create).start).y;
             
             // set its layer to the average of its start and end connection layers
             float s = nodes.get(connections.get(create).start).layer;
@@ -165,7 +172,8 @@ class Creature {
     
     
     public ArrayList<Float> Calculate(ArrayList<Float> inputs) {
-        
+        totLayers.sort(null);
+
         // set each of the inputs nodes values
         for (int i = 0; i < inputNum; i++) { 
             nodes.get(i).value = inputs.get(i);
@@ -178,7 +186,8 @@ class Creature {
             for (int s = 0; s < nodes.size(); s++){
                 if (nodes.get(s).layer == totLayers.get(i)){
                     for (int w = 0; w < connections.size(); w++){
-                        if (connections.get(w).start==i){
+                        if (connections.get(w).start==s){
+                            System.out.println(connections.get(w).start+" "+nodes.get(s).id + " " + s);
                             nodes.get(connections.get(w).end).value += nodes.get(s).value*connections.get(w).weight;
                         }
                     }
@@ -190,7 +199,9 @@ class Creature {
         ArrayList<Float> outputs = new ArrayList<Float>();
         for (int i = 0; i < outputNum; i++) { 
             outputs.add(nodes.get(inputNum+i).value);
+            System.out.println(outputs.get(i));
         }
+
         
         return outputs;
     }
@@ -203,6 +214,9 @@ class run{
     static int NUM_AGENTS = 10;
     static int NUM_GENERATIONS = 500;
     static int get = 1;
+    static ArrayList<Creature> currentGeneration = new ArrayList<Creature>();
+    static ArrayList<Float> scores = new ArrayList<Float>();
+    static ArrayList<Creature> best = new ArrayList<Creature>();
     
     //  sorts the scores and the creatures in parallel
     static private void sort(ArrayList<Creature> currentGeneration, ArrayList<Float> scores){
@@ -295,12 +309,11 @@ class run{
     }
     
     static void ai() throws IOException {
-        ArrayList<Float> scores = new ArrayList<Float>();
-        ArrayList<Creature> best = new ArrayList<Creature>();
         int name = 0;
+        currentGeneration.clear();
+        scores.clear();
         
-        // generate initial population
-        ArrayList<Creature> currentGeneration = new ArrayList<Creature>();
+        // generate inital population
         for (int i = 0; i < NUM_AGENTS; i++){
             // each creature has random connection weights, with minimal nodes
             currentGeneration.add(new Creature(NUM_INPUTS, NUM_OUTPUTS));
@@ -370,165 +383,205 @@ class run{
         
         sort(currentGeneration, scores);
         for (int i =0; i < currentGeneration.size(); i++){
-            if (scores.get(i) == 4){
+            //if (scores.get(i) == 4){
                 System.out.print(currentGeneration.get(i).nodes.size() + " ");
+                //  }
             }
+            System.out.println();
+            System.out.println("END SCORE " + scores);
+            // 1. conduct tests
+            // 2. take 20 highest scorers
+            // 3. for each mutuate 4 times and add to new population
+            // 4. repeat steps 1-4 for num of generations
         }
-        System.out.println();
-        System.out.println("END SCORE " + scores);
-        // 1. conduct tests
-        // 2. take 20 highest scorers
-        // 3. for each mutuate 4 times and add to new population
-        // 4. repeat steps 1-4 for num of generations
-    }
-}
-
-
-class draw implements ActionListener {
-    int disGen = 0;
-    
-    JFrame frame = new JFrame();
-    
-    JTextField track = new JTextField(run.get);
-    JTextField agents = new JTextField(run.NUM_AGENTS);
-    JTextField gens = new JTextField(run.NUM_GENERATIONS);
-    JTextField showGens = new JTextField(0);
-    
-    
-    JLabel trackLabel = new JLabel("Top agents shown:");
-    JLabel agentsLabel = new JLabel("Agent Count:");
-    JLabel genLabel = new JLabel("Generation Count:");
-    JLabel showGenLabel = new JLabel("Generation Shown:");
-    
-    
-    JButton trackBut = new JButton("Set");
-    JButton agentBut = new JButton("Set");
-    JButton genBut = new JButton("Set");
-    JButton showGenBut = new JButton("Show");
-    JButton runBut = new JButton("Run");
-    JButton cheatBut  = new JButton("");
-    
-    
-    draw(){
-        // set the details
-        frame.setTitle("NEAT");
-        frame.add(new DrawPane());
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(1000, 1000);
-        frame.setVisible(true);
-        
-        
-        // set the dimensions
-        trackLabel.setBounds(0, 0, 250, 20);
-        track.setBounds(0, 20, 100, 20);
-        trackBut.setBounds(102, 20, 60, 20);
-        
-        agentsLabel.setBounds(0, 40, 250, 20);
-        agents.setBounds(0, 60, 100, 20);
-        agentBut.setBounds(102, 60, 60, 20);
-        
-        genLabel.setBounds(0, 80, 250, 20);
-        gens.setBounds(0, 100, 100, 20);
-        genBut.setBounds(102, 100, 60, 20);
-        
-        runBut.setBounds(0, 130, 162, 70);
-
-        showGenLabel.setBounds(0, 210, 250, 20);
-        showGens.setBounds(0, 230, 100, 20);
-        showGenBut.setBounds(102, 230, 70, 20);
-        cheatBut.setBounds(0, 0, 0, 0);
-        
-        // make it so you can see when it was pressed
-        trackBut.addActionListener(this);
-        agentBut.addActionListener(this);
-        genBut.addActionListener(this);
-        showGenBut.addActionListener(this);
-        runBut.addActionListener(this);
-
-        // cheat button added last so no button fills upo the whole screen due to no layout manager
-        cheatBut.setEnabled(false);
-        cheatBut.setVisible(false);
-        
-        // add to the pannel
-        frame.add(track);
-        frame.add(trackLabel);
-        frame.add(trackBut);
-        frame.add(agentsLabel);
-        frame.add(agents);
-        frame.add(agentBut);
-        frame.add(genLabel);
-        frame.add(gens);
-        frame.add(genBut);
-        frame.add(runBut);
-        frame.add(showGenLabel);
-        frame.add(showGens);
-        frame.add(showGenBut);
-        frame.add(cheatBut);
     }
     
-    // tests if a valid number was entered
-    public int test(String text){
-        int num;
-        try{
-            num = Integer.parseInt(text);
-        }
-        catch(Exception w){
-            num = -1;
-        }
-        return num;
-    }
     
-    // read key presses
-    public void actionPerformed(ActionEvent e) {
+    class draw implements ActionListener {
+        int disGen = 0;
+        JFrame frame = new JFrame();
         
-        // if button was ressed
-        if (e.getSource() == trackBut) {
-            if (test(track.getText()) != -1) run.get = Integer.parseInt(track.getText());
-            else track.setText("Whole # Only");
-        }
-        if (e.getSource() == agentBut) {
-            if (test(agents.getText()) != -1) run.NUM_AGENTS = Integer.parseInt(agents.getText());
-            else agents.setText("Whole # Only");
-        }
-        if (e.getSource() == genBut) {
-            if (test(gens.getText()) != -1) run.NUM_GENERATIONS = Integer.parseInt(gens.getText());
-            else gens.setText("Whole # Only");
-        }
-        if (e.getSource() == showGenBut) {
-            if (test(showGens.getText()) != -1){
-                if (Integer.parseInt(showGens.getText()) <= run.NUM_GENERATIONS){
-                    disGen = Integer.parseInt(showGens.getText()); 
-                }
-                else{
-                    disGen = run.NUM_GENERATIONS;
-                    showGens.setText(run.NUM_GENERATIONS+"");
-                }
-            } 
-            else showGens.setText("Whole # Only");
-            System.out.println(disGen);
+        JTextField track = new JTextField(run.get);
+        JTextField agents = new JTextField(run.NUM_AGENTS);
+        JTextField gens = new JTextField(run.NUM_GENERATIONS);
+        JTextField showGens = new JTextField(0);
+        
+        
+        JLabel trackLabel = new JLabel("Top agents shown:");
+        JLabel agentsLabel = new JLabel("Agent Count:");
+        JLabel genLabel = new JLabel("Generation Count:");
+        JLabel showGenLabel = new JLabel("Generation Shown:");
+        
+        
+        JButton trackBut = new JButton("Set");
+        JButton agentBut = new JButton("Set");
+        JButton genBut = new JButton("Set");
+        JButton showGenBut = new JButton("Show");
+        JButton runBut = new JButton("Run");
+        JButton cheatBut  = new JButton("");
+        DrawPane n = new DrawPane();
+        
+        
+        draw(){
+            // set the details
+            frame.setTitle("NEAT");
+            frame.add(n);
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setSize(1000, 1000);
+            frame.setVisible(true);
+            
+            
+            // set the dimensions
+            trackLabel.setBounds(0, 0, 250, 20);
+            track.setBounds(0, 20, 100, 20);
+            trackBut.setBounds(102, 20, 60, 20);
+            
+            agentsLabel.setBounds(0, 40, 250, 20);
+            agents.setBounds(0, 60, 100, 20);
+            agentBut.setBounds(102, 60, 60, 20);
+            
+            genLabel.setBounds(0, 80, 250, 20);
+            gens.setBounds(0, 100, 100, 20);
+            genBut.setBounds(102, 100, 60, 20);
+            
+            runBut.setBounds(0, 130, 162, 70);
+            
+            showGenLabel.setBounds(0, 210, 250, 20);
+            showGens.setBounds(0, 230, 100, 20);
+            showGenBut.setBounds(102, 230, 70, 20);
+            cheatBut.setBounds(0, 0, 0, 0);
+            
+            // make it so you can see when it was pressed
+            trackBut.addActionListener(this);
+            agentBut.addActionListener(this);
+            genBut.addActionListener(this);
+            showGenBut.addActionListener(this);
+            runBut.addActionListener(this);
+            
+            // cheat button added last so no button fills upo the whole screen due to no layout manager
+            cheatBut.setEnabled(false);
+            cheatBut.setVisible(false);
+            
+            // add to the pannel
+            frame.add(track);
+            frame.add(trackLabel);
+            frame.add(trackBut);
+            frame.add(agentsLabel);
+            frame.add(agents);
+            frame.add(agentBut);
+            frame.add(genLabel);
+            frame.add(gens);
+            frame.add(genBut);
+            frame.add(runBut);
+            frame.add(showGenLabel);
+            frame.add(showGens);
+            frame.add(showGenBut);
+            frame.add(cheatBut);
         }
         
-        if (e.getSource() == runBut){
-            try {
-                run.ai();
+        // tests if a valid number was entered
+        public int test(String text){
+            int num;
+            try{
+                num = Integer.parseInt(text);
             }
             catch(Exception w){
+                num = -1;
+            }
+            return num;
+        }
+        Boolean draws = false;
+        // read key presses
+        public void actionPerformed(ActionEvent e) {
+            
+            // if button was pressed
+            if (e.getSource() == trackBut) {
+                if (test(track.getText()) != -1) run.get = Integer.parseInt(track.getText());
+                else track.setText("Whole # Only");
+            }
+            if (e.getSource() == agentBut) {
+                if (test(agents.getText()) != -1) run.NUM_AGENTS = Integer.parseInt(agents.getText());
+                else agents.setText("Whole # Only");
+            }
+            if (e.getSource() == genBut) {
+                if (test(gens.getText()) != -1) run.NUM_GENERATIONS = Integer.parseInt(gens.getText());
+                else gens.setText("Whole # Only");
+            }
+            // decides which generation to show 
+            if (e.getSource() == showGenBut) {
+                if (test(showGens.getText()) != -1){
+                    if (Integer.parseInt(showGens.getText()) <= run.NUM_GENERATIONS){
+                        disGen = Integer.parseInt(showGens.getText()); 
+                        frame.repaint(); // repaints the new net
+                    }
+                    else{
+                        disGen = run.NUM_GENERATIONS;
+                        showGens.setText(run.NUM_GENERATIONS+"");
+                    }
+                } 
+                else showGens.setText("Whole # Only");
+            }
+            
+            if (e.getSource() == runBut){
+                try {
+                    run.ai();
+                    frame.repaint(); // repaints the new net
+                    
+                }
+                catch(Exception w){
+                }
+            }
+        }
+        
+        // draws everything
+        class DrawPane extends JPanel {
+            public void paint(Graphics g) {
+                DecimalFormat f = new DecimalFormat("#0.0000");
+                Creature n = run.currentGeneration.get(disGen);
+                int startx = 200, endx = 200, starty = 80, endy = 80;
+                
+                for (int i = 0; i < n.totLayers.size(); i++){
+                    for (int w = 0; w < n.nodes.size(); w++){
+                        
+                        g.drawOval((int)(200+300*n.nodes.get(w).layer),
+                        80+(int)(80*n.nodes.get(w).y), 50, 50);
+                        
+                        g.drawString(f.format(n.nodes.get(w).value)+"", 
+                        (int)(200+300*n.nodes.get(w).layer),
+                        80+(int)(80*n.nodes.get(w).y));
+                    }   
+                }
+                for (int i = 0; i < n.connections.size(); i++){
+                    for (int w = 0; w < n.nodes.size(); w++){
+                        if (n.connections.get(i).start == n.nodes.get(w).id){
+                            startx = (int)(225+300*n.nodes.get(w).layer);
+                            starty = 105+(int)(80*n.nodes.get(w).y);
+                        }
+                        else if(n.connections.get(i).end == n.nodes.get(w).id){
+                            endx = (int)(225+300*n.nodes.get(w).layer);
+                            endy = 105+(int)(80*n.nodes.get(w).y);
+
+                        }
+                    }
+                    g.drawLine(startx, starty, endx, endy);
+                    g.drawString(f.format(n.connections.get(i).weight)+"", (int)(startx+endx)/2-20, (int)(starty+endy)/2);
+
+                }
             }
         }
     }
     
-    // draws everything
-    class DrawPane extends JPanel {
-        public void paint(Graphics g) {
-            g.fillOval(50, 50, 100, 100);  
+    
+    public class Neat {
+        public static void main(String[] args) throws IOException {
+            run.ai();
+            int test = 0;
+            
+            for (int i = 0; i < run.currentGeneration.get(test).totLayers.size(); i++){
+                System.out.println(run.currentGeneration.get(test).totLayers.get(i));
+            }
+            
+            new draw();
         }
     }
-}
-
-
-public class Neat {
-    public static void main(String[] args) throws IOException {
-        draw d = new draw();
-    }
-}
-
+    
