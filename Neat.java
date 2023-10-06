@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.awt.*;
 import java.awt.event.*;
-
+import java.util.Collections;
 import javax.swing.GroupLayout;
 import javax.swing.JButton;
 import javax.swing.JPanel;
@@ -44,7 +44,6 @@ class Node {
 class Creature {
     ArrayList<Node> nodes = new ArrayList<Node>();
     ArrayList<Double> scores = new ArrayList<Double>();
-
     ArrayList<Connection> connections = new ArrayList<Connection>();
     Random rand = new Random();
     int currentId = 0, inputNum, outputNum, creatureId, improve = 0;
@@ -222,31 +221,25 @@ class run{
     static int NUM_GENERATIONS = 500;
     static int get = 1;
     static int cutoff = 50;
+    static int name = 0;
     static ArrayList<Creature> currentGeneration = new ArrayList<Creature>();
     static ArrayList<Float> scores = new ArrayList<Float>();
     
-    //  sorts the scores and the creatures in parallel
-    static private void sort(ArrayList<Creature> currentGeneration, ArrayList<Float> scores){
-        
-        // sorts the scores and moves the creature with the bubble sorting
-        float temp;
-        Creature tempCreature;
+    //  sorts the generation based on their scores
+    static private void sort(ArrayList<Creature> currentGeneration){
+        // bubble sorting
+        Creature temp;
         boolean swapped;
         
-        for (int i = 0; i < scores.size()-1; i++){
+        for (int i = 0; i < currentGeneration.size()-1; i++){
             swapped = false;
-            for (int s = 0; s < scores.size()-i-1; s++){
-                if (scores.get(s) > scores.get(s+1)){
-                    // swap scores
-                    temp = scores.get(s);
-                    scores.set(s, scores.get(s+1));
-                    scores.set(s+1, temp);
-                    
-                    // swap creatures
-                    tempCreature = currentGeneration.get(s);
+            for (int s = 0; s < currentGeneration.size()-i-1; s++){
+                if (currentGeneration.get(s).scoresCur > currentGeneration.get(s+1).scoresCur){
+                    // swap agents
+                    temp = currentGeneration.get(s);
                     currentGeneration.set(s, currentGeneration.get(s+1));
-                    currentGeneration.set(s+1, tempCreature);
-                    
+                    currentGeneration.set(s+1, temp);
+                
                     swapped = true;
                 }
             }
@@ -315,49 +308,54 @@ class run{
             }
         }
         if (score == 4){
-            System.out.println("PERECT SCOREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
+        //    System.out.println("PERECT SCOREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
         }
         return (float) score;
     }
-    
-    
-    static void ai() throws IOException {
-        int name = 0;
-        currentGeneration.clear();
-        scores.clear();
-        
+
+    public static ArrayList<Creature> initPop(){
         // generate inital population
         for (int i = 0; i < NUM_AGENTS; i++){
             // each creature has random connection weights, with minimal nodes
             currentGeneration.add(new Creature(NUM_INPUTS, NUM_OUTPUTS));
             currentGeneration.get(i).creatureId = name;
+            currentGeneration.get(i).scoresCur = getFitness(currentGeneration.get(i));
             name++;
-            scores.add(getFitness(currentGeneration.get(i)));
-            currentGeneration.get(i).scoresCur = scores.get(i);
         }
-        
-        sort(currentGeneration, scores);
-        
-        
+        return currentGeneration;
+    }
+    
+    static void ai() throws IOException {
+        currentGeneration.clear();
+               // generate inital population
+        for (int i = 0; i < NUM_AGENTS; i++){
+            // each creature has random connection weights, with minimal nodes
+            currentGeneration.add(new Creature(NUM_INPUTS, NUM_OUTPUTS));
+            currentGeneration.get(i).creatureId = name;
+            currentGeneration.get(i).scoresCur = getFitness(currentGeneration.get(i));
+            name++;
+        }
+
+        sort(currentGeneration);
+
         System.out.println("START" + scores);
         for (int i = 0; i < currentGeneration.size(); i++){
-            System.out.print("s:"+scores.get(i) +" ID:"+ currentGeneration.get(i).creatureId + "   ");
+            System.out.print("s:"+currentGeneration.get(i).scoresCur +" ID:"+ currentGeneration.get(i).creatureId + "   ");
         }
         System.out.println("");
         
         // for every generation 
         for (int s = 0; s < NUM_GENERATIONS-1; s++){
         //    speciate(currentGeneration.get(0), currentGeneration.get(6));
-            sort(currentGeneration, scores);
+            sort(currentGeneration);
             
             for (int i = 0; i < currentGeneration.size(); i++){
-                System.out.print("s:"+scores.get(i) +" ID:"+ currentGeneration.get(i).creatureId+ "  ");
+                System.out.print("s:"+currentGeneration.get(i).scoresCur +" ID:"+ currentGeneration.get(i).creatureId+ "  ");
             }
             System.out.println(s);
             
             // keep the top 20%
             for (int w = 0; w < Math.round(NUM_AGENTS*0.8); w++){
-                scores.remove(0);
                 currentGeneration.remove(0);
             }
             
@@ -371,40 +369,36 @@ class run{
                     currentGeneration.get(w).improve = 0;
                 }
                 
-                if (currentGeneration.get(w).improve >= cutoff && (scores.get(w) != 4)){
+                if (currentGeneration.get(w).improve >= cutoff && (currentGeneration.get(w).scoresCur != 4)){
                     System.out.println("reset nodes: " + currentGeneration.get(w).nodes.size() + " from agent " + currentGeneration.get(w).creatureId);
                     currentGeneration.set(w, new Creature(NUM_INPUTS, NUM_OUTPUTS));
-                    scores.set(w, getFitness(currentGeneration.get(w)));
+                    currentGeneration.get(w).scoresCur = getFitness(currentGeneration.get(w));
                     
-                    currentGeneration.get(w).scoresCur = scores.get(w);
                     currentGeneration.get(w).improve = 0;
                     currentGeneration.get(w).creatureId = name;
                 }
-                System.out.println(currentGeneration.get(w).improve);
+               // System.out.println(currentGeneration.get(w).improve);
 
-            }
+            }  
             
             // duplicate the top 20% 4 times and mutate them and test them to fill the 80%
             for (int w = 0; w < Math.round(NUM_AGENTS*0.2); w++){
-                for (int i = 0; i < 4; i++){
-                    currentGeneration.add(currentGeneration.get(w));
-                    currentGeneration.get(currentGeneration.size()-1).Mutate();
-                    currentGeneration.get(currentGeneration.size()-1).creatureId = currentGeneration.get(w).creatureId+1;
-                    scores.add(getFitness(currentGeneration.get(currentGeneration.size()-1)));   
+                for (int i = 0; i < 4; i++){    
+                    int max = currentGeneration.size()-1;
+                    currentGeneration.add(0, currentGeneration.get(max-w));
+                    currentGeneration.get(0).Mutate();
+
+                    currentGeneration.get(0).creatureId = currentGeneration.get(max-w).creatureId+1;
+                    currentGeneration.get(0).scoresCur = getFitness(currentGeneration.get(0));
                 }
+
             }
 
-            
-            // sets their new score
-            for (int i = 0 ; i < NUM_AGENTS; i++){
-                scores.set(i, getFitness(currentGeneration.get(i)));
-                currentGeneration.get(i).scoresCur = scores.get(i);
-            }
-
-            sort(currentGeneration, scores);
+        
+            sort(currentGeneration);
         }
         
-        sort(currentGeneration, scores);
+        sort(currentGeneration);
         for (int i =0; i < currentGeneration.size(); i++){
             //if (scores.get(i) == 4){
             //    System.out.print(currentGeneration.get(i).nodes.size() + " ");
