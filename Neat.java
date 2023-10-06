@@ -13,7 +13,6 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 
-import draw.DrawPane;
 
 class Connection {
     int start, end, inoId;
@@ -44,6 +43,8 @@ class Node {
 
 class Creature {
     ArrayList<Node> nodes = new ArrayList<Node>();
+    ArrayList<Double> scores = new ArrayList<Double>();
+
     ArrayList<Connection> connections = new ArrayList<Connection>();
     Random rand = new Random();
     int currentId = 0, inputNum, outputNum, creatureId, improve = 0;
@@ -51,6 +52,11 @@ class Creature {
     
     // constructor for base minimal creature
     public Creature(int inputs, int outputs) {
+        scores.add(0.0);                                                          //TEST
+        scores.add(0.0);
+        scores.add(0.0);
+        scores.add(0.0);
+
         this.inputNum = inputs;
         this.outputNum = outputs;
         // generates all inputs nodes
@@ -102,7 +108,7 @@ class Creature {
             nodes.get(currentId).layer = (s+x)/2;
             
             // create a new connection from the new node to previous end node and set its inno id
-            connections.add(new Connection(1, currentId, connections.get(create).end)); 
+            connections.add(new Connection((float)(Math.random()), currentId, connections.get(create).end)); 
             connections.get(connections.size()-1).inoId = Integer.parseInt(currentId + "" + connections.get(create).end);
             
             // move the connection from old end node to the new node and set its inno id
@@ -111,7 +117,7 @@ class Creature {
             currentId++;
             
             
-            // add every unqie layer number to a list
+            // add every unqie layer number to a list   
             for(int i = 0; i < nodes.size(); i++){
                 if (!(totLayers.contains(nodes.get(i).layer))){
                     totLayers.add(nodes.get(i).layer);
@@ -173,11 +179,13 @@ class Creature {
     
     public ArrayList<Float> Calculate(ArrayList<Float> inputs) {
         totLayers.sort(null);
-
+        for (int i = 0; i < nodes.size(); i++){
+            nodes.get(i).value = 0;
+        }
+        
         // set each of the inputs nodes values
         for (int i = 0; i < inputNum; i++) { 
-            nodes.get(i).value = inputs.get(i);
-            
+            nodes.get(i).value = inputs.get(i);            
         }
         
         
@@ -187,7 +195,6 @@ class Creature {
                 if (nodes.get(s).layer == totLayers.get(i)){
                     for (int w = 0; w < connections.size(); w++){
                         if (connections.get(w).start==s){
-                            System.out.println(connections.get(w).start+" "+nodes.get(s).id + " " + s);
                             nodes.get(connections.get(w).end).value += nodes.get(s).value*connections.get(w).weight;
                         }
                     }
@@ -199,9 +206,9 @@ class Creature {
         ArrayList<Float> outputs = new ArrayList<Float>();
         for (int i = 0; i < outputNum; i++) { 
             outputs.add(nodes.get(inputNum+i).value);
-            System.out.println(outputs.get(i));
+         //   System.out.println(outputs.get(i));
         }
-
+    //    System.out.println("");
         
         return outputs;
     }
@@ -214,9 +221,9 @@ class run{
     static int NUM_AGENTS = 10;
     static int NUM_GENERATIONS = 500;
     static int get = 1;
+    static int cutoff = 50;
     static ArrayList<Creature> currentGeneration = new ArrayList<Creature>();
     static ArrayList<Float> scores = new ArrayList<Float>();
-    static ArrayList<Creature> best = new ArrayList<Creature>();
     
     //  sorts the scores and the creatures in parallel
     static private void sort(ArrayList<Creature> currentGeneration, ArrayList<Float> scores){
@@ -289,7 +296,7 @@ class run{
     }
     
     // specifically designed for XOR
-    static private float getFitness(Creature specimen) {
+    static public float getFitness(Creature specimen) {
         int score = 0;
         
         // create the 4 possible test cases
@@ -297,16 +304,22 @@ class run{
             ArrayList<Float> input = new ArrayList<Float>();
             input.add(0, (float) Math.round(i/4.0f));
             input.add(1, (float) i % 2);
-            double val =  Math.round(1/(1+Math.exp(specimen.Calculate(input).get(0)*-1)));  //sigmoid function
-            if (val == xor(input.get(0), input.get(1))) {
+            double val =  specimen.Calculate(input).get(0); 
+        //    if (val == 0) val -= 0.0001;
+        //    val = Math.round(1/(1+Math.exp(-val)));  //sigmoid function
+        //    val = Math.abs(Math.round(val+0.25));    // testing!??!?!?
+            val = Math.round(0.5*Math.sin(Math.PI*(val-0.5))+0.5);
+            specimen.scores.set(i, val);
+            if (val == xor(input.get(0), input.get(1))) {   
                 score++;
             }
         }
         if (score == 4){
-            System.out.println("PERECT SCOREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
+            System.out.println("PERECT SCOREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
         }
         return (float) score;
     }
+    
     
     static void ai() throws IOException {
         int name = 0;
@@ -324,7 +337,7 @@ class run{
         }
         
         sort(currentGeneration, scores);
-        best.add(currentGeneration.get(currentGeneration.size()-1));
+        
         
         System.out.println("START" + scores);
         for (int i = 0; i < currentGeneration.size(); i++){
@@ -334,11 +347,11 @@ class run{
         
         // for every generation 
         for (int s = 0; s < NUM_GENERATIONS-1; s++){
-            speciate(currentGeneration.get(0), currentGeneration.get(9));
+        //    speciate(currentGeneration.get(0), currentGeneration.get(6));
             sort(currentGeneration, scores);
             
             for (int i = 0; i < currentGeneration.size(); i++){
-                System.out.print("s:"+scores.get(i) +" ID:"+ currentGeneration.get(i).creatureId + "  ");
+                System.out.print("s:"+scores.get(i) +" ID:"+ currentGeneration.get(i).creatureId+ "  ");
             }
             System.out.println(s);
             
@@ -350,7 +363,7 @@ class run{
             
             // remove the agent if it hasnt improved over 15 generations
             for (int w = 0; w < currentGeneration.size(); w++){ 
-                if (currentGeneration.get(w).scoresCur == currentGeneration.get(w).scoresPrev){
+                if (currentGeneration.get(w).scoresCur <= currentGeneration.get(w).scoresPrev){
                     currentGeneration.get(w).improve++;
                 }
                 else{
@@ -358,13 +371,17 @@ class run{
                     currentGeneration.get(w).improve = 0;
                 }
                 
-                if (currentGeneration.get(w).improve >= 50 && scores.get(w) != 4){
+                if (currentGeneration.get(w).improve >= cutoff && (scores.get(w) != 4)){
                     System.out.println("reset nodes: " + currentGeneration.get(w).nodes.size() + " from agent " + currentGeneration.get(w).creatureId);
                     currentGeneration.set(w, new Creature(NUM_INPUTS, NUM_OUTPUTS));
                     scores.set(w, getFitness(currentGeneration.get(w)));
+                    
+                    currentGeneration.get(w).scoresCur = scores.get(w);
                     currentGeneration.get(w).improve = 0;
                     currentGeneration.get(w).creatureId = name;
                 }
+                System.out.println(currentGeneration.get(w).improve);
+
             }
             
             // duplicate the top 20% 4 times and mutate them and test them to fill the 80%
@@ -372,23 +389,29 @@ class run{
                 for (int i = 0; i < 4; i++){
                     currentGeneration.add(currentGeneration.get(w));
                     currentGeneration.get(currentGeneration.size()-1).Mutate();
+                    currentGeneration.get(currentGeneration.size()-1).creatureId = currentGeneration.get(w).creatureId+1;
                     scores.add(getFitness(currentGeneration.get(currentGeneration.size()-1)));   
                 }
             }
-            sort(currentGeneration, scores);
-            for (int i = 0; i < get; i++){
-                best.add(currentGeneration.get(currentGeneration.size()-1+i));
+
+            
+            // sets their new score
+            for (int i = 0 ; i < NUM_AGENTS; i++){
+                scores.set(i, getFitness(currentGeneration.get(i)));
+                currentGeneration.get(i).scoresCur = scores.get(i);
             }
+
+            sort(currentGeneration, scores);
         }
         
         sort(currentGeneration, scores);
         for (int i =0; i < currentGeneration.size(); i++){
             //if (scores.get(i) == 4){
-                System.out.print(currentGeneration.get(i).nodes.size() + " ");
+            //    System.out.print(currentGeneration.get(i).nodes.size() + " ");
                 //  }
             }
-            System.out.println();
-            System.out.println("END SCORE " + scores);
+           // System.out.println();
+          //  System.out.println("END SCORE " + scores);
             // 1. conduct tests
             // 2. take 20 highest scorers
             // 3. for each mutuate 4 times and add to new population
@@ -398,25 +421,25 @@ class run{
     
     
     class draw implements ActionListener {
-        int disGen = 0;
+        int disAgent = 0;
         JFrame frame = new JFrame();
         
-        JTextField track = new JTextField(run.get);
-        JTextField agents = new JTextField(run.NUM_AGENTS);
-        JTextField gens = new JTextField(run.NUM_GENERATIONS);
-        JTextField showGens = new JTextField(0);
+        JTextField cutoff = new JTextField(run.cutoff+"");
+        JTextField agents = new JTextField(run.NUM_AGENTS+"");
+        JTextField gens = new JTextField(run.NUM_GENERATIONS+"");
+        JTextField showAgent = new JTextField();
         
         
-        JLabel trackLabel = new JLabel("Top agents shown:");
+        JLabel cutoffLabel = new JLabel("Generation Cutoff: ");
         JLabel agentsLabel = new JLabel("Agent Count:");
         JLabel genLabel = new JLabel("Generation Count:");
-        JLabel showGenLabel = new JLabel("Generation Shown:");
+        JLabel showAgentLabel = new JLabel("Agent Shown: ");
         
         
-        JButton trackBut = new JButton("Set");
+        JButton cutoffBut = new JButton("Set");
         JButton agentBut = new JButton("Set");
         JButton genBut = new JButton("Set");
-        JButton showGenBut = new JButton("Show");
+        JButton showAgentBut = new JButton("Show");
         JButton runBut = new JButton("Run");
         JButton cheatBut  = new JButton("");
         DrawPane n = new DrawPane();
@@ -432,9 +455,9 @@ class run{
             
             
             // set the dimensions
-            trackLabel.setBounds(0, 0, 250, 20);
-            track.setBounds(0, 20, 100, 20);
-            trackBut.setBounds(102, 20, 60, 20);
+            cutoffLabel.setBounds(0, 0, 250, 20);
+            cutoff.setBounds(0, 20, 100, 20);
+            cutoffBut.setBounds(102, 20, 60, 20);
             
             agentsLabel.setBounds(0, 40, 250, 20);
             agents.setBounds(0, 60, 100, 20);
@@ -446,16 +469,17 @@ class run{
             
             runBut.setBounds(0, 130, 162, 70);
             
-            showGenLabel.setBounds(0, 210, 250, 20);
-            showGens.setBounds(0, 230, 100, 20);
-            showGenBut.setBounds(102, 230, 70, 20);
+            showAgentLabel.setBounds(0, 210, 250, 20);
+            showAgent.setBounds(0, 230, 100, 20);
+            showAgentBut.setBounds(102, 230, 70, 20);
+
             cheatBut.setBounds(0, 0, 0, 0);
             
             // make it so you can see when it was pressed
-            trackBut.addActionListener(this);
+            cutoffBut.addActionListener(this);
             agentBut.addActionListener(this);
             genBut.addActionListener(this);
-            showGenBut.addActionListener(this);
+            showAgentBut.addActionListener(this);
             runBut.addActionListener(this);
             
             // cheat button added last so no button fills upo the whole screen due to no layout manager
@@ -463,9 +487,9 @@ class run{
             cheatBut.setVisible(false);
             
             // add to the pannel
-            frame.add(track);
-            frame.add(trackLabel);
-            frame.add(trackBut);
+            frame.add(cutoff);
+            frame.add(cutoffLabel);
+            frame.add(cutoffBut);
             frame.add(agentsLabel);
             frame.add(agents);
             frame.add(agentBut);
@@ -473,9 +497,9 @@ class run{
             frame.add(gens);
             frame.add(genBut);
             frame.add(runBut);
-            frame.add(showGenLabel);
-            frame.add(showGens);
-            frame.add(showGenBut);
+            frame.add(showAgentLabel);
+            frame.add(showAgent);
+            frame.add(showAgentBut);
             frame.add(cheatBut);
         }
         
@@ -495,9 +519,9 @@ class run{
         public void actionPerformed(ActionEvent e) {
             
             // if button was pressed
-            if (e.getSource() == trackBut) {
-                if (test(track.getText()) != -1) run.get = Integer.parseInt(track.getText());
-                else track.setText("Whole # Only");
+            if (e.getSource() == cutoffBut) {
+                if (test(cutoff.getText()) != -1) run.cutoff = Integer.parseInt(cutoff.getText());
+                else cutoff.setText("Whole # Only");
             }
             if (e.getSource() == agentBut) {
                 if (test(agents.getText()) != -1) run.NUM_AGENTS = Integer.parseInt(agents.getText());
@@ -508,18 +532,18 @@ class run{
                 else gens.setText("Whole # Only");
             }
             // decides which generation to show 
-            if (e.getSource() == showGenBut) {
-                if (test(showGens.getText()) != -1){
-                    if (Integer.parseInt(showGens.getText()) <= run.NUM_GENERATIONS){
-                        disGen = Integer.parseInt(showGens.getText()); 
+            if (e.getSource() == showAgentBut) {  // make it so it gets the specific agent from the gen rather than gen, and add a button to go to next gen and do the stuff
+                if (test(showAgent.getText()) >= 0){
+                    if (Integer.parseInt(showAgent.getText()) < run.NUM_AGENTS){
+                        disAgent = Integer.parseInt(showAgent.getText()); 
                         frame.repaint(); // repaints the new net
                     }
                     else{
-                        disGen = run.NUM_GENERATIONS;
-                        showGens.setText(run.NUM_GENERATIONS+"");
+                        disAgent = run.NUM_AGENTS-1;
+                        showAgent.setText(run.NUM_AGENTS-1+"");
                     }
                 } 
-                else showGens.setText("Whole # Only");
+                else showAgent.setText("Whole # Only");
             }
             
             if (e.getSource() == runBut){
@@ -536,9 +560,16 @@ class run{
         // draws everything
         class DrawPane extends JPanel {
             public void paint(Graphics g) {
-                DecimalFormat f = new DecimalFormat("#0.0000");
-                Creature n = run.currentGeneration.get(disGen);
+                DecimalFormat f = new DecimalFormat("#0.000");
+                Creature n = run.currentGeneration.get(disAgent);
                 int startx = 200, endx = 200, starty = 80, endy = 80;
+
+                // shows test cases and answers and score
+                g.drawString(run.getFitness(n)+"", 790, 120);
+                for (int i =0; i < 4; i++){
+                g.drawString((float) Math.round(i/4.0f) + ", " + (float) i % 2+ " = "+
+                n.scores.get(i), 650, 120+i*30);
+                }
                 
                 for (int i = 0; i < n.totLayers.size(); i++){
                     for (int w = 0; w < n.nodes.size(); w++){
@@ -560,12 +591,12 @@ class run{
                         else if(n.connections.get(i).end == n.nodes.get(w).id){
                             endx = (int)(225+300*n.nodes.get(w).layer);
                             endy = 105+(int)(80*n.nodes.get(w).y);
-
+                            
                         }
                     }
                     g.drawLine(startx, starty, endx, endy);
                     g.drawString(f.format(n.connections.get(i).weight)+"", (int)(startx+endx)/2-20, (int)(starty+endy)/2);
-
+                    
                 }
             }
         }
@@ -575,11 +606,7 @@ class run{
     public class Neat {
         public static void main(String[] args) throws IOException {
             run.ai();
-            int test = 0;
             
-            for (int i = 0; i < run.currentGeneration.get(test).totLayers.size(); i++){
-                System.out.println(run.currentGeneration.get(test).totLayers.get(i));
-            }
             
             new draw();
         }
